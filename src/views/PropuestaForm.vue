@@ -27,13 +27,13 @@
               <div style="grid-column:1/-1">
                 <div class="field">
                   <label>Título de la investigación *</label>
-                  <input v-model="form.titulo" placeholder="Ej. Análisis socioeconómico de..." :class="{ error: err.titulo }" />
+                  <input v-model="form.titulo" placeholder="Ej. Análisis socioeconómico de..." :class="{ error: err.titulo }" @input="delete err.titulo" />
                   <div v-if="err.titulo" class="field-error">{{ err.titulo }}</div>
                 </div>
               </div>
               <div class="field">
                 <label>Tipo de investigación *</label>
-                <select v-model="form.tipo" :class="{ error: err.tipo }">
+                <select v-model="form.tipo" :class="{ error: err.tipo }" @change="delete err.tipo">
                   <option value="">Seleccionar...</option>
                   <option>Básica</option><option>Aplicada</option><option>Mixta</option>
                 </select>
@@ -41,7 +41,7 @@
               </div>
               <div class="field">
                 <label>Modalidad *</label>
-                <select v-model="form.modalidad" :class="{ error: err.modalidad }">
+                <select v-model="form.modalidad" :class="{ error: err.modalidad }" @change="delete err.modalidad">
                   <option value="">Seleccionar...</option>
                   <option>Proyecto institucional</option><option>Tesis pregrado</option>
                   <option>Tesis maestría</option><option>Tesis doctoral</option><option>Investigación aplicada</option>
@@ -50,42 +50,52 @@
               </div>
               <div class="field">
                 <label>Área del conocimiento *</label>
-                <select v-model="form.area" :class="{ error: err.area }">
+                <select v-model="form.area" :class="{ error: err.area }" @change="delete err.area">
                   <option value="">Seleccionar...</option>
-                  <option>Ciencias Ambientales</option><option>Ciencias Sociales y Económicas</option>
-                  <option>Sistemas / Tecnología</option><option>Ciencias de la Salud</option>
-                  <option>Ingeniería</option><option>Educación</option><option>Derecho</option>
+                  <option>Ciencias Ambientales</option>
+                  <option>Ciencias Sociales y Económicas</option>
+                  <option>Sistemas / Tecnología</option>
+                  <option>Ciencias de la Salud</option>
+                  <option>Ingeniería</option>
+                  <option>Educación</option>
+                  <option>Derecho</option>
                 </select>
                 <div v-if="err.area" class="field-error">{{ err.area }}</div>
               </div>
               <div class="field">
-                <label>Fecha de inicio *</label>
-                <input v-model="form.fechaInicio" type="date" :class="{ error: err.fechaInicio }" />
+                <label>Fecha de inicio * <span style="font-size:11px;color:var(--text3)">(desde hoy en adelante)</span></label>
+                <input
+                  v-model="form.fechaInicio"
+                  type="date"
+                  :min="fechaMinima"
+                  :class="{ error: err.fechaInicio }"
+                  @change="delete err.fechaInicio"
+                />
                 <div v-if="err.fechaInicio" class="field-error">{{ err.fechaInicio }}</div>
               </div>
               <div class="field">
                 <label>Duración estimada (meses) *</label>
-                <input v-model.number="form.duracion" type="number" min="1" max="60" placeholder="12" :class="{ error: err.duracion }" />
+                <input v-model.number="form.duracion" type="number" min="1" max="60" placeholder="12" :class="{ error: err.duracion }" @input="delete err.duracion" />
                 <div v-if="err.duracion" class="field-error">{{ err.duracion }}</div>
               </div>
               <div style="grid-column:1/-1">
                 <div class="field">
                   <label>Planteamiento del problema *</label>
-                  <textarea v-model="form.planteamiento" rows="4" :class="{ error: err.planteamiento }" placeholder="Describe el problema de investigación..."></textarea>
+                  <textarea v-model="form.planteamiento" rows="4" :class="{ error: err.planteamiento }" placeholder="Describe el problema de investigación..." @input="delete err.planteamiento"></textarea>
                   <div v-if="err.planteamiento" class="field-error">{{ err.planteamiento }}</div>
                 </div>
               </div>
               <div style="grid-column:1/-1">
                 <div class="field">
                   <label>Objetivo general *</label>
-                  <textarea v-model="form.objetivo" rows="3" :class="{ error: err.objetivo }" placeholder="Define el objetivo principal..."></textarea>
+                  <textarea v-model="form.objetivo" rows="3" :class="{ error: err.objetivo }" placeholder="Define el objetivo principal..." @input="delete err.objetivo"></textarea>
                   <div v-if="err.objetivo" class="field-error">{{ err.objetivo }}</div>
                 </div>
               </div>
               <div style="grid-column:1/-1">
                 <div class="field">
                   <label>Metodología *</label>
-                  <textarea v-model="form.metodologia" rows="3" :class="{ error: err.metodologia }" placeholder="Describe la metodología..."></textarea>
+                  <textarea v-model="form.metodologia" rows="3" :class="{ error: err.metodologia }" placeholder="Describe la metodología..." @input="delete err.metodologia"></textarea>
                   <div v-if="err.metodologia" class="field-error">{{ err.metodologia }}</div>
                 </div>
               </div>
@@ -104,7 +114,7 @@
             </div>
           </div>
 
-          <!-- STEP 2: Equipo y presupuesto -->
+          <!-- STEP 2: Presupuesto -->
           <div v-if="step === 2">
             <div class="section-title" style="margin-bottom:16px">Presupuesto estimado (USD)</div>
             <div class="grid-2" style="margin-bottom:24px">
@@ -130,7 +140,7 @@
             </div>
           </div>
 
-          <!-- STEP 3: Cronograma (fases) -->
+          <!-- STEP 3: Cronograma -->
           <div v-if="step === 3">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
               <div class="section-title">Fases del proyecto</div>
@@ -143,7 +153,7 @@
               </div>
               <div class="grid-2">
                 <div style="grid-column:1/-1" class="field">
-                  <label>Nombre de la fase</label>
+                  <label>Nombre de la fase *</label>
                   <input v-model="fase.nombre" placeholder="Ej. Marco teórico" />
                 </div>
                 <div class="field">
@@ -156,11 +166,14 @@
                 </div>
               </div>
             </div>
+            <div v-if="err.fases" class="alert alert-danger" style="margin-top:10px">{{ err.fases }}</div>
           </div>
 
           <!-- STEP 4: Revisión -->
           <div v-if="step === 4">
-            <div class="alert alert-info" style="margin-bottom:20px">Revisa los datos antes de enviar. Una vez enviada, la propuesta quedará pendiente de evaluación por el comité.</div>
+            <div class="alert alert-info" style="margin-bottom:20px">
+              Revisa los datos antes de enviar. Una vez enviada, la propuesta quedará pendiente de evaluación por el comité.
+            </div>
             <div class="review-section">
               <div class="review-label">Título</div>
               <div class="review-val">{{ form.titulo }}</div>
@@ -171,23 +184,34 @@
               <div class="review-section"><div class="review-label">Área</div><div class="review-val">{{ form.area }}</div></div>
               <div class="review-section"><div class="review-label">Duración</div><div class="review-val">{{ form.duracion }} meses</div></div>
             </div>
+            <div class="review-section"><div class="review-label">Fecha de inicio</div><div class="review-val">{{ form.fechaInicio }}</div></div>
             <div class="review-section"><div class="review-label">Planteamiento</div><div class="review-val">{{ form.planteamiento }}</div></div>
             <div class="review-section"><div class="review-label">Objetivo</div><div class="review-val">{{ form.objetivo }}</div></div>
+            <div class="review-section"><div class="review-label">Metodología</div><div class="review-val">{{ form.metodologia }}</div></div>
+            <div class="review-section">
+              <div class="review-label">Palabras clave</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                <span v-for="kw in form.palabrasClave" :key="kw" class="badge badge-blue">{{ kw }}</span>
+                <span v-if="!form.palabrasClave.length" class="review-val">Ninguna</span>
+              </div>
+            </div>
             <div class="review-section">
               <div class="review-label">Presupuesto total</div>
               <div class="review-val" style="color:var(--green);font-weight:700">${{ totalPresupuesto.toLocaleString() }}</div>
             </div>
             <div class="review-section">
               <div class="review-label">Fases ({{ form.fases.length }})</div>
-              <div v-for="(f,i) in form.fases" :key="i" class="review-val">{{ i+1 }}. {{ f.nombre }} (Mes {{ f.mesesInicio }}–{{ f.mesesFin }})</div>
+              <div v-for="(f,i) in form.fases" :key="i" class="review-val" style="margin-top:4px">
+                {{ i+1 }}. {{ f.nombre }} (Mes {{ f.mesesInicio }}–{{ f.mesesFin }})
+              </div>
             </div>
           </div>
 
           <!-- Footer nav -->
           <div style="display:flex;justify-content:space-between;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
-            <div>
+            <div style="display:flex;gap:8px">
               <button v-if="step > 1" class="btn btn-secondary" @click="step--">← Anterior</button>
-              <router-link to="/investigador" class="btn btn-secondary" style="margin-left:8px">Cancelar</router-link>
+              <router-link to="/investigador" class="btn btn-secondary">Cancelar</router-link>
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-secondary" @click="guardarBorrador">Guardar borrador</button>
@@ -213,8 +237,11 @@ const router = useRouter()
 
 const isEditing = computed(() => !!route.params.id)
 const step = ref(1)
-const stepLabels = ['Datos generales', 'Equipo y presupuesto', 'Cronograma', 'Revisión y envío']
+const stepLabels = ['Datos generales', 'Presupuesto', 'Cronograma', 'Revisión y envío']
 const kwInput = ref('')
+
+// Fecha mínima = hoy en formato YYYY-MM-DD
+const fechaMinima = computed(() => new Date().toISOString().slice(0, 10))
 
 const form = reactive({
   titulo: '', tipo: '', modalidad: '', area: '', fechaInicio: '', duracion: 12,
@@ -245,16 +272,40 @@ function addFase() { form.fases.push({ nombre: '', mesesInicio: 1, mesesFin: for
 function removeFase(i) { form.fases.splice(i, 1) }
 
 function validateStep1() {
-  const campos = ['titulo','tipo','modalidad','area','fechaInicio','duracion','planteamiento','objetivo','metodologia']
   let ok = true
+  const campos = ['titulo', 'tipo', 'modalidad', 'area', 'fechaInicio', 'duracion', 'planteamiento', 'objetivo', 'metodologia']
   campos.forEach(c => {
     if (!form[c]) { err[c] = 'Campo requerido'; ok = false } else delete err[c]
   })
+
+  // Validar que la fecha no sea anterior a hoy
+  if (form.fechaInicio) {
+    const hoy = new Date().toISOString().slice(0, 10)
+    if (form.fechaInicio < hoy) {
+      err.fechaInicio = 'La fecha de inicio debe ser desde hoy en adelante'
+      ok = false
+    }
+  }
+
+  // Validar duración
+  if (form.duracion && (form.duracion < 1 || form.duracion > 60)) {
+    err.duracion = 'La duración debe ser entre 1 y 60 meses'
+    ok = false
+  }
+
   return ok
+}
+
+function validateStep3() {
+  const sinNombre = form.fases.some(f => !f.nombre.trim())
+  if (sinNombre) { err.fases = 'Todas las fases deben tener un nombre'; return false }
+  delete err.fases
+  return true
 }
 
 function nextStep() {
   if (step.value === 1 && !validateStep1()) return
+  if (step.value === 3 && !validateStep3()) return
   step.value++
 }
 

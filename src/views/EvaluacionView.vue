@@ -56,16 +56,26 @@
               </div>
 
               <div class="field">
-                <label>Observaciones del comité</label>
-                <textarea v-model="ev.observaciones" rows="4" placeholder="Escribe tus observaciones..."></textarea>
+                <label>Observaciones del comité *</label>
+                <textarea
+                  v-model="ev.observaciones"
+                  rows="4"
+                  placeholder="Escribe tus observaciones antes de tomar una decisión..."
+                  :class="{ error: mostrarError }"
+                  @input="mostrarError = false"
+                ></textarea>
+                <div v-if="mostrarError" class="field-error">⚠ Debes escribir observaciones antes de enviar la evaluación.</div>
               </div>
 
-              <div v-if="errMsg" class="alert alert-danger" style="margin-bottom:12px">{{ errMsg }}</div>
+              <!-- Confirmación exitosa -->
+              <div v-if="guardado" class="alert alert-success" style="margin-bottom:12px">
+                ✓ Evaluación guardada correctamente. Redirigiendo...
+              </div>
 
               <div style="display:flex;gap:8px;margin-top:4px">
-                <button class="btn btn-danger" style="flex:1;justify-content:center" @click="decidir('rechazada')">✕ Rechazar</button>
-                <button class="btn btn-secondary" style="flex:1;justify-content:center" @click="decidir('correcciones')">✎ Correcciones</button>
-                <button class="btn btn-success" style="flex:1;justify-content:center" @click="decidir('aprobada')">✓ Aprobar</button>
+                <button class="btn btn-danger" style="flex:1;justify-content:center" @click="decidir('rechazada')" :disabled="guardado">✕ Rechazar</button>
+                <button class="btn btn-secondary" style="flex:1;justify-content:center" @click="decidir('correcciones')" :disabled="guardado">✎ Correcciones</button>
+                <button class="btn btn-success" style="flex:1;justify-content:center" @click="decidir('aprobada')" :disabled="guardado">✓ Aprobar</button>
               </div>
             </div>
           </div>
@@ -79,7 +89,7 @@
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavBar from '@/components/NavBar.vue'
 import { useStore } from '@/stores/useStore.js'
@@ -87,6 +97,9 @@ import { useStore } from '@/stores/useStore.js'
 const store = useStore()
 const route = useRoute()
 const router = useRouter()
+
+const mostrarError = ref(false)
+const guardado = ref(false)
 
 const propuesta = computed(() => store.getPropuesta(route.params.id))
 const inv = computed(() => store.getUsuario(propuesta.value?.investigadorId))
@@ -101,7 +114,6 @@ const criterios = [
 ]
 
 const ev = reactive({ pertinencia: 7, viabilidad: 7, originalidad: 7, marco: 7, observaciones: '' })
-const errMsg = computed(() => !ev.observaciones.trim() ? 'Agrega observaciones antes de enviar.' : '')
 
 const puntuacion = computed(() => {
   const vals = criterios.map(c => Number(ev[c.key]) || 0)
@@ -109,17 +121,40 @@ const puntuacion = computed(() => {
 })
 
 function decidir(decision) {
-  if (!ev.observaciones.trim()) return
-  const resultado = store.evaluarPropuesta(route.params.id, {
-    criterios: { pertinencia: ev.pertinencia, viabilidad: ev.viabilidad, originalidad: ev.originalidad, marco: ev.marco },
-    puntuacion: parseFloat(puntuacion.value.toFixed(1)),
-    decision,
-    observaciones: ev.observaciones,
-  })
-  if (decision === 'aprobada' && resultado.proyectoId) {
-    alert(`Propuesta APROBADA.\nSe ha creado automaticamente el proyecto en estado Planificacion.\nEl investigador ya puede registrar avances.`)
+  // Validar observaciones
+  if (!ev.observaciones.trim()) {
+    mostrarError.value = true
+    return
   }
-  router.push('/comite')
+
+  mostrarError.value = false
+
+  try {
+    const resultado = store.evaluarPropuesta(route.params.id, {
+      criterios: {
+        pertinencia: ev.pertinencia,
+        viabilidad: ev.viabilidad,
+        originalidad: ev.originalidad,
+        marco: ev.marco,
+      },
+      puntuacion: parseFloat(puntuacion.value.toFixed(1)),
+      decision,
+      observaciones: ev.observaciones,
+    })
+
+    guardado.value = true
+
+    setTimeout(() => {
+      if (decision === 'aprobada' && resultado?.proyectoId) {
+        alert('✓ Propuesta APROBADA.\nSe creó el proyecto automáticamente.\nEl investigador ya puede registrar avances.')
+      }
+      router.push('/comite')
+    }, 1000)
+
+  } catch (e) {
+    console.error('Error al guardar evaluación:', e)
+    alert('Ocurrió un error al guardar. Intenta de nuevo.')
+  }
 }
 </script>
 
