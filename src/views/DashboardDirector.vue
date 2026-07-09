@@ -74,6 +74,29 @@
           </div>
         </div>
 
+        <!-- Documentos de avance recibidos -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="section-title" style="margin-bottom:16px">Documentos de avance recibidos</div>
+          <div v-if="store.documentos.length === 0" style="font-size:12px;color:var(--text3);padding:.5rem 0">
+            No hay documentos subidos aún.
+          </div>
+          <div v-for="d in store.documentos" :key="d.id" style="padding:12px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+              <div>
+                <div style="font-size:13px;font-weight:600">{{ d.descripcion }}</div>
+                <div style="font-size:11px;color:var(--text2)">{{ d.nombre }} · Subido el {{ d.fecha }} · {{ store.getUsuario(d.investigadorId)?.nombre }}</div>
+                <div v-if="d.proyectoId" style="font-size:11px;color:var(--teal);margin-top:2px">📁 {{ store.getProyecto(d.proyectoId)?.titulo }}</div>
+              </div>
+              <a :href="d.dataUrl" :download="d.nombre" class="btn btn-secondary btn-sm" style="white-space:nowrap;font-size:11px">Descargar</a>
+            </div>
+            <div style="display:flex;gap:8px">
+              <input v-model="retros[d.id]" type="text" placeholder="Escribe retroalimentación..." style="flex:1;padding:.35rem .6rem;font-size:12px;border:1px solid var(--border);border-radius:6px">
+              <button class="btn btn-primary btn-sm" style="font-size:11px" @click="enviarRetro(d.id)">Enviar</button>
+            </div>
+            <div v-if="d.retroalimentacion" style="font-size:11px;color:var(--green);margin-top:6px">✓ Enviado: {{ d.retroalimentacion }}</div>
+          </div>
+        </div>
+
         <!-- Alertas -->
         <div class="card">
           <div class="section-title" style="margin-bottom:14px">Alertas y notificaciones recientes</div>
@@ -103,7 +126,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import NavBar from '@/components/NavBar.vue'
 import { useStore } from '@/stores/useStore.js'
 
@@ -111,24 +134,34 @@ const store = useStore()
 
 const enEjecucion = computed(() => store.proyectos.filter(p => p.estado === 'ejecucion').length)
 const finalizadas = computed(() => store.proyectos.filter(p => p.estado === 'finalizado' || p.estado === 'cierre').length)
-const aprobadas = computed(() => store.propuestas.filter(p => p.estado === 'aprobada').length)
-const recientes = computed(() => [...store.proyectos].slice(-3).reverse())
+const aprobadas   = computed(() => store.propuestas.filter(p => p.estado === 'aprobada').length)
+const recientes   = computed(() => [...store.proyectos].slice(-3).reverse())
 
 const faseStats = computed(() => {
   const counts = { planificacion: 0, ejecucion: 0, cierre: 0, finalizado: 0 }
   store.proyectos.forEach(p => { if (counts[p.estado] !== undefined) counts[p.estado]++ })
   return [
     { nombre: 'Formulación / Propuesta', count: store.propuestas.filter(p=>p.estado==='pendiente').length, color: 'var(--text3)' },
-    { nombre: 'Evaluación', count: store.evaluaciones.length, color: 'var(--amber)' },
-    { nombre: 'Planificación', count: counts.planificacion, color: 'var(--blue)' },
-    { nombre: 'Ejecución', count: counts.ejecucion, color: 'var(--teal)' },
-    { nombre: 'Resultados / Cierre', count: counts.cierre + counts.finalizado, color: 'var(--green)' },
+    { nombre: 'Evaluación',              count: store.evaluaciones.length,  color: 'var(--amber)' },
+    { nombre: 'Planificación',           count: counts.planificacion,       color: 'var(--blue)'  },
+    { nombre: 'Ejecución',               count: counts.ejecucion,           color: 'var(--teal)'  },
+    { nombre: 'Resultados / Cierre',     count: counts.cierre + counts.finalizado, color: 'var(--green)' },
   ]
 })
 
 function getInv(id) {
   const u = store.getUsuario(id)
   return u ? u.nombre : 'Desconocido'
+}
+
+// ── retroalimentación ─────────────────────────────────────
+const retros = ref({})
+
+function enviarRetro(docId) {
+  const texto = retros.value[docId]?.trim()
+  if (!texto) return
+  store.enviarRetroalimentacion(docId, texto)
+  retros.value[docId] = ''
 }
 </script>
 

@@ -337,6 +337,32 @@ export const useStore = defineStore('main', () => {
     evaluaciones.value = ls.get('sigproinv_evaluaciones')
   }
 
+  // ── DOCUMENTOS DE AVANCE ─────────────────────────────────
+const documentos = ref(ls.get('sigproinv_documentos') || [])
+
+function subirDocumento(proyectoId, descripcion, nombre, dataUrl) {
+  var doc = {
+    id: uid(),
+    proyectoId: proyectoId,
+    investigadorId: sesion.value.id,
+    descripcion: descripcion,
+    nombre: nombre,
+    fecha: new Date().toISOString().slice(0, 10),
+    dataUrl: dataUrl,
+    retroalimentacion: ''
+  }
+  documentos.value.push(doc)
+  ls.set('sigproinv_documentos', documentos.value)
+}
+
+function enviarRetroalimentacion(docId, texto) {
+  var i = documentos.value.findIndex(d => d.id === docId)
+  if (i !== -1) {
+    documentos.value[i].retroalimentacion = texto
+    ls.set('sigproinv_documentos', documentos.value)
+  }
+}
+
   return {
     sesion, usuarios, proyectos, propuestas, evaluaciones,
     misProyectos, misPropuestas, propuestasPendientes,
@@ -346,6 +372,7 @@ export const useStore = defineStore('main', () => {
     crearPropuesta, editarPropuesta, eliminarPropuesta,
     crearProyecto, editarProyecto, eliminarProyecto, registrarAvance,
     evaluarPropuesta, registrarUsuario, actualizarPerfil, cambiarEstadoProyecto, resetDatos, save, uid,
+    documentos, subirDocumento, enviarRetroalimentacion,
   }
 })
 // This file has an appended patch - registrarUsuario is added via the store replacement below

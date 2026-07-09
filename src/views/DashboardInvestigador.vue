@@ -55,19 +55,15 @@
                 <span :class="['badge', store.estadoColor[p.estado]]">{{ store.estadoLabel[p.estado] }}</span>
               </div>
               <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Enviada: {{ p.fechaEnvio }}</div>
-
-              <!-- Aprobada: mostrar acceso al proyecto generado -->
               <div v-if="p.estado === 'aprobada' && p.proyectoId" class="alert alert-success" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-                <span style="font-size:12px">✓ Propuesta aprobada — proyecto creado. Ya puedes registrar avances.</span>
+                <span style="font-size:12px">✓ Propuesta aprobada — proyecto creado.</span>
                 <router-link :to="`/proyecto/${p.proyectoId}/seguimiento`" class="btn btn-success btn-sm" style="white-space:nowrap">Registrar avance →</router-link>
               </div>
-
               <div v-if="p.estado === 'correcciones'" class="alert alert-warn" style="font-size:12px;margin-bottom:10px">
                 <strong>Correcciones solicitadas:</strong> {{ p.observaciones }}
               </div>
               <div v-if="p.estado === 'rechazada'" class="alert alert-danger" style="font-size:12px;margin-bottom:10px">{{ p.observaciones || 'Propuesta rechazada por el comité.' }}</div>
               <div v-if="p.estado === 'pendiente'" class="alert alert-info" style="font-size:12px;margin-bottom:10px">En espera de evaluación por el comité.</div>
-
               <div style="display:flex;gap:8px" v-if="p.estado !== 'aprobada'">
                 <router-link :to="`/propuesta/editar/${p.id}`" class="btn btn-secondary btn-sm">Editar</router-link>
                 <button v-if="p.estado === 'correcciones'" class="btn btn-primary btn-sm" @click="reenviarPropuesta(p.id)">↑ Reenviar al comité</button>
@@ -77,8 +73,6 @@
                 <router-link :to="`/proyecto/${p.proyectoId}`" class="btn btn-secondary btn-sm">Ver proyecto</router-link>
               </div>
             </div>
-
-            <!-- Acciones rápidas -->
             <div class="card" style="margin-top:8px">
               <div class="section-title" style="margin-bottom:12px">Acciones rápidas</div>
               <div style="display:flex;flex-direction:column;gap:8px">
@@ -87,8 +81,49 @@
             </div>
           </div>
 
-          <!-- Notificaciones -->
+          <!-- Columna derecha -->
           <div>
+            <!-- Subir documento de avance -->
+            <div class="section-title">Documentos de avance</div>
+            <div class="card" style="margin-bottom:12px">
+              <div class="section-title" style="margin-bottom:12px;font-size:11px">Subir nuevo documento</div>
+              <div class="field" style="margin-bottom:10px">
+                <label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Proyecto vinculado</label>
+                <select v-model="docProyectoId" style="width:100%;padding:.4rem .6rem;font-size:13px;border:1px solid var(--border);border-radius:6px">
+                  <option value="">— Seleccionar —</option>
+                  <option v-for="p in store.misProyectos" :key="p.id" :value="p.id">{{ p.titulo.slice(0,45) }}...</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:10px">
+                <label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Descripción *</label>
+                <input v-model="docDescripcion" type="text" placeholder="Ej: Informe de avance mes 1" style="width:100%;padding:.4rem .6rem;font-size:13px;border:1px solid var(--border);border-radius:6px">
+              </div>
+              <div class="field" style="margin-bottom:10px">
+                <label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px">Archivo PDF *</label>
+                <input type="file" accept=".pdf" @change="onFileChange" style="width:100%;font-size:12px">
+              </div>
+              <div v-if="errDoc" style="font-size:11px;color:var(--red);margin-bottom:8px">{{ errDoc }}</div>
+              <button class="btn btn-primary btn-sm" @click="subirDoc">Subir documento</button>
+            </div>
+
+            <!-- Lista de documentos subidos -->
+            <div class="card" style="margin-bottom:12px">
+              <div class="section-title" style="margin-bottom:12px;font-size:11px">Mis documentos subidos</div>
+              <div v-if="misDocumentos.length === 0" style="font-size:12px;color:var(--text3);padding:.5rem 0">No has subido documentos aún.</div>
+              <div v-for="d in misDocumentos" :key="d.id" style="padding:10px 0;border-bottom:1px solid var(--border)">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                  <div>
+                    <div style="font-size:13px;font-weight:600">{{ d.descripcion }}</div>
+                    <div v-if="d.proyectoId" style="font-size:11px;color:var(--teal);margin-top:2px">📁 {{ store.getProyecto(d.proyectoId)?.titulo }}</div>
+                    <div style="font-size:11px;color:var(--text2);margin-top:2px">{{ d.nombre }} · {{ d.fecha }}</div>
+                    <div v-if="d.retroalimentacion" style="font-size:11px;color:var(--green);margin-top:4px">💬 {{ d.retroalimentacion }}</div>
+                  </div>
+                  <a :href="d.dataUrl" :download="d.nombre" class="btn btn-secondary btn-sm" style="white-space:nowrap;font-size:11px">Descargar</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notificaciones -->
             <div class="section-title">Notificaciones</div>
             <div class="card">
               <div v-for="n in notificaciones" :key="n.id" class="notif-item">
@@ -111,22 +146,53 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import NavBar from '@/components/NavBar.vue'
 import { useStore } from '@/stores/useStore.js'
 
 const store = useStore()
 
+// ── subida de documentos ──────────────────────────────────
+const docProyectoId  = ref('')
+const docDescripcion = ref('')
+const docArchivo     = ref(null)
+const errDoc         = ref('')
+
+function onFileChange(e) {
+  docArchivo.value = e.target.files[0] || null
+}
+
+function subirDoc() {
+  errDoc.value = ''
+  if (!docDescripcion.value.trim()) { errDoc.value = 'Escribe una descripción.'; return }
+  if (!docArchivo.value)            { errDoc.value = 'Selecciona un archivo PDF.'; return }
+  if (docArchivo.value.type !== 'application/pdf') { errDoc.value = 'Solo se permiten archivos PDF.'; return }
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    store.subirDocumento(docProyectoId.value, docDescripcion.value.trim(), docArchivo.value.name, e.target.result)
+    docProyectoId.value  = ''
+    docDescripcion.value = ''
+    docArchivo.value     = null
+  }
+  reader.readAsDataURL(docArchivo.value)
+}
+
+const misDocumentos = computed(() =>
+  store.documentos.filter(d => d.investigadorId === store.sesion?.id)
+)
+
+// ── propuestas ────────────────────────────────────────────
 function eliminarPropuesta(id) {
   if (confirm('¿Eliminar esta propuesta?')) store.eliminarPropuesta(id)
 }
-
 function reenviarPropuesta(id) {
-  if (confirm('¿Reenviar esta propuesta al comité para nueva evaluación?')) {
+  if (confirm('¿Reenviar esta propuesta al comité?')) {
     store.editarPropuesta(id, { estado: 'pendiente', evaluacionId: null, evaluacionScore: null, observaciones: '' })
   }
 }
 
+// ── notificaciones ────────────────────────────────────────
 const notificaciones = computed(() => {
   const ns = []
   store.misProyectos.forEach(p => {
@@ -137,7 +203,7 @@ const notificaciones = computed(() => {
   })
   store.misPropuestas.forEach(p => {
     if (p.estado === 'aprobada') ns.push({ id: p.id+'ap', texto: `Propuesta "${p.titulo.slice(0,35)}..." aprobada`, tiempo: p.fechaEnvio, color: 'var(--green)' })
-    if (p.estado === 'correcciones') ns.push({ id: p.id+'co', texto: `Solicitud de correcciones en "${p.titulo.slice(0,30)}..."`, tiempo: p.fechaEnvio, color: 'var(--amber)' })
+    if (p.estado === 'correcciones') ns.push({ id: p.id+'co', texto: `Correcciones en "${p.titulo.slice(0,30)}..."`, tiempo: p.fechaEnvio, color: 'var(--amber)' })
   })
   return ns.slice(0, 6)
 })
